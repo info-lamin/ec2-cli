@@ -2,13 +2,34 @@ import os
 import sys
 import boto3
 import pyperclip
+from dotenv import load_dotenv
 
-final_instances = list()
+load_dotenv(f"{os.path.dirname(os.path.abspath(__file__))}/.env")
+
+# Hard-coded AWS credentials and region
+AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
+AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
+AWS_REGION = os.getenv("AWS_REGION")
+
+# EC2 resource and client initialization with hard-coded credentials
+ec2_resource = boto3.resource(
+    'ec2',
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION
+)
+ec2_client = boto3.client(
+    'ec2',
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION
+)
+
+final_instances = []
 
 
 def retrieve_ec2_instances():
-    ec2 = boto3.resource('ec2')
-    instances = ec2.instances.all()
+    instances = ec2_resource.instances.all()
     print(f'{"ID":<2} {"Instance ID":<20} {"Name":<25} {"State":<15} {"Instance Type":<15} {"Public IPv4":<20}')
     final_instances.clear()
     for key, instance in enumerate(instances):
@@ -23,12 +44,11 @@ def retrieve_ec2_instances():
 
 
 def create_ec2_instance():
-    ec2 = boto3.resource('ec2')
     instance_name = input("Enter Instance Name: ")
     instance_type = input(
         "Enter Instance Type (default: t2.micro): ") or 't2.micro'
-    key_pairs_client = boto3.client('ec2')
-    key_pairs_response = key_pairs_client.describe_key_pairs()
+
+    key_pairs_response = ec2_client.describe_key_pairs()
     key_pairs = key_pairs_response['KeyPairs']
 
     print("Key Pairs Available:")
@@ -52,7 +72,7 @@ def create_ec2_instance():
     storage_size = input("Storage Size (default 8GB): ") or 8
     no_of_instances = input("No Of Instances (default 1): ") or 1
 
-    instance = ec2.create_instances(
+    instance = ec2_resource.create_instances(
         ImageId='ami-0866a3c8686eaeeba',  # Ubuntu Latest
         MinCount=int(no_of_instances),
         MaxCount=int(no_of_instances),
@@ -89,8 +109,7 @@ def stop_ec2_instance():
     retrieve_ec2_instances()
     instances = [final_instances[i][0] for i in map(int, input(
         "\nEnter the instance ID(s) to Stop: ").replace(',', ' ').split()) if final_instances[i][0]]
-    ec2 = boto3.client('ec2')
-    ec2.stop_instances(InstanceIds=instances)
+    ec2_client.stop_instances(InstanceIds=instances)
     print(f'\nStopped EC2 Instance(s): {", ".join(instances)}')
 
 
@@ -98,8 +117,7 @@ def start_ec2_instance():
     retrieve_ec2_instances()
     instances = [final_instances[i][0] for i in map(int, input(
         "\nEnter the instance ID(s) to Start: ").replace(',', ' ').split()) if final_instances[i][0]]
-    ec2 = boto3.client('ec2')
-    ec2.start_instances(InstanceIds=instances)
+    ec2_client.start_instances(InstanceIds=instances)
     print(f'\nStarted EC2 Instance(s): {", ".join(instances)}')
 
 
@@ -107,8 +125,7 @@ def delete_ec2_instance():
     retrieve_ec2_instances()
     instances = [final_instances[i][0] for i in map(int, input(
         "\nEnter the instance ID(s) to Delete: ").replace(',', ' ').split()) if final_instances[i][0]]
-    ec2 = boto3.client('ec2')
-    ec2.terminate_instances(InstanceIds=instances)
+    ec2_client.terminate_instances(InstanceIds=instances)
     print(f'\nDeleted EC2 Instance(s): {", ".join(instances)}')
 
 
