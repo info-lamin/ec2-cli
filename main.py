@@ -133,7 +133,7 @@ def ssh_ec2_instance():
     retrieve_ec2_instances()
     choice = int(input("Enter instance ID to create ssh: "))
     ip = final_instances[choice][2]
-    os.system(f"ssh ubuntu@{ip}")
+    os.system(f"ssh ubuntu@{ip} -o StrictHostKeyChecking=no")
 
 
 # Instruction Message
